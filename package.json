@@ -1,0 +1,27 @@
+{
+  "name": "harmonyHubUtil",
+  "version": "1.0.0",
+  "description": "Harmony remote Hub Utilities",
+  "main": "harmonyHubUtils.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "harmonyhubjs-client" : "1.1.4",
+    "harmonyhubjs-discover" : "1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sushiks/harmonyHubUtil.git"
+  },
+  "keywords": [
+    "harmony",
+    "remote"
+  ],
+  "author": "Sushil Singh <sushilks@gmail.com> (http://sushilks.blogspot.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sushiks/harmonyHubUtil/issues"
+  },
+  "homepage": "https://github.com/sushiks/harmonyHubUtil"
+}
