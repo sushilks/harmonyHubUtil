@@ -10,4 +10,4 @@ What is it
 
 Installation
 ------------
-npm install harmonyHubUtils --save
+npm install harmony-hub-utils --save
