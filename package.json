@@ -1,13 +1,12 @@
 {
   "name": "harmony-hub-util",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Harmony remote Hub Utilities",
   "main": "harmonyHubUtils.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "harmonyHubUtil": "git://github.com/sushiks/harmonyHubUtil.git",
     "harmonyhubjs-client": "1.1.4",
     "harmonyhubjs-discover": "1.0.0"
   },
