@@ -1,6 +1,6 @@
 {
   "name": "harmony-hub-util",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Harmony remote Hub Utilities",
   "main": "harmonyHubUtils.js",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sushiks/harmonyHubUtil.git"
+    "url": "https://github.com/sushilks/harmonyHubUtil.git"
   },
   "keywords": [
     "harmony",
@@ -21,7 +21,7 @@
   "author": "Sushil Singh <sushilks@gmail.com> (http://sushilks.blogspot.com)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sushiks/harmonyHubUtil/issues"
+    "url": "https://github.com/sushilks/harmonyHubUtil/issues"
   },
-  "homepage": "https://github.com/sushiks/harmonyHubUtil"
+  "homepage": "https://github.com/sushilks/harmonyHubUtil"
 }
