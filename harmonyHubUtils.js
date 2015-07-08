@@ -59,9 +59,9 @@ function executeCommand(client, device, command, callBackFn) {
                                 callBackFn(true);
                                 return;
                             }
-                            callBackFn(false);
                         });
                     });
+                    callBackFn(false);
                 }
             }
         });
@@ -72,7 +72,7 @@ function readHubActivities(client, callBackFn) {
         .then(function (commands) {
             var res = [], idx;
             for (idx in commands.activity) {
-                res.insert(commands.activity[idx].label);
+                res.push(commands.activity[idx].label);
                 //console.log("Activity " + idx + " is : " + commands.activity[idx].label);
             }
             callBackFn(res);
@@ -84,7 +84,7 @@ function readHubDevices(client, callBackFn) {
         .then(function (commands) {
             var res = [], idx;
             for (idx in commands.device) {
-                res.insert(commands.device[idx].label);
+                res.push(commands.device[idx].label);
                 //console.log("Device " + idx + " is :" + commands.device[idx].label);
             }
             callBackFn(res);
@@ -103,7 +103,7 @@ function readHubCommands(client, device, callBackFn) {
                     dev.controlGroup.filter(function (group) {
                         group['function'].filter(function (action) {
                             //console.log("\t\t Commands  : " + action.action);
-                            res.insert(JSON.parse(action.action).command);
+                            res.push(JSON.parse(action.action).command);
                         });
                     });
                 }
