@@ -11,7 +11,7 @@ Harmony Hub Utility.
 
 ## Installation
 
-npm install harmony-hub-utils --save
+npm install harmony-hub-util --save
 
 ## Example use case
 
