@@ -1,51 +1,76 @@
 'use strict';
-
+/*jslint nomen: true */
 var harmony = require('harmonyhubjs-client'),
-    HarmonyHubDiscover = require('harmonyhubjs-discover'),
-    discover = null;
+    debug = require('debug')('harmonyHub:util'),
+    EventEmitter = require('events').EventEmitter,
+    Q = require('q'),
+    harmonyClient;
 
-function discoverHub(callBackFn) {
-    if (discover === null) {
-        discover = new HarmonyHubDiscover(61991);
-    }
-    discover.on('online', function (hub) {
-        //console.log('discovered ' + hub.ip + '\n');
-        callBackFn(hub.ip, true);
+
+function HarmonyHubUtil(ip) {
+    var self = this,
+        deferred = Q.defer();
+
+    harmony(ip).then(function (client) {
+        self._harmonyClient = client;
+        deferred.resolve(self);
+    }, function (err) {
+        deferred.reject(err);
     });
-    discover.on('offline', function (hub) {
-        //console.log('lost ' + hub.ip);
-        callBackFn(hub.ip, false);
-    });
-    discover.start();
+
+    return deferred.promise;
+}
+function end() {
+    this._harmonyClient.end();
+    this._harmonyClient = undefined;
 }
 
-function createHubClient(ip) {
-    return harmony(ip);
+function readCurrentActivity() {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getCurrentActivity().then(function (current_activity_id) {
+        self._harmonyClient.getAvailableCommands()
+            .then(function (commands) {
+                commands.activity.filter(function (act) {
+                    if (act.id === current_activity_id) {
+                        deferred.resolve(act.label);
+                        return;
+                    }
+                });
+                deferred.reject('unable to find.');
+            });
+    });
+    return deferred.promise;
 }
 
-function executeActivity(client, act, callBackFn) {
-    client.getActivities()
+function executeActivity(act) {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getActivities()
         .then(function (activities) {
             activities.some(function (activity) {
                 if (activity.label === act) {
                     var id = activity.id;
-                    console.log("Starting Activity " + act);
-                    client.startActivity(id);
-                    client.end();
-                    callBackFn(true);
-                    return;
+                    console.log("Starting Activity " + act + " id:" + id);
+                    self._harmonyClient.startActivity(id);
+                    deferred.resolve(true);
+                    return true;
                 }
-                callBackFn(false);
             });
+            //deferred.reject('cant find activity [' + act + ']');
         });
+    return deferred.promise;
 }
 
-function executeCommand(client, device, command, callBackFn) {
-    client.getAvailableCommands()
+function executeDeviceCommand(device, command) {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getAvailableCommands()
         .then(function (commands) {
-            var idx, dev;
-            for (idx in commands.device) {
-                dev = commands.device[idx];
+            commands.device.filter(function (dev) {
                 if (dev.label === device) {
                     dev.controlGroup.filter(function (group) {
                         group['function'].filter(function (action) {
@@ -54,51 +79,98 @@ function executeCommand(client, device, command, callBackFn) {
                                 console.log("Triggering On device " + device + " command " + command);
                                 encodedAction = action.action.replace(/\:/g, '::');
                                 dt = 'action=' + encodedAction + ':status=press';
-                                console.log("Sending Action = " + dt);
-                                client.send('holdAction', dt);
-                                callBackFn(true);
+                                //console.log("Sending Action = " + dt);
+                                self._harmonyClient.send('holdAction', dt).then(function () {
+                                    deferred.resolve(true);
+                                });
                                 return;
                             }
                         });
                     });
-                    callBackFn(false);
                 }
-            }
+            });
         });
+    return deferred.promise;
 }
 
-function readHubActivities(client, callBackFn) {
-    client.getAvailableCommands()
+function executeActivityCommand(activity, command) {
+    var deferred = Q.defer(),
+        cmd = command.split(','),
+        self = this;
+
+    self._harmonyClient.getAvailableCommands()
         .then(function (commands) {
-            var res = [], idx;
-            for (idx in commands.activity) {
-                res.push(commands.activity[idx].label);
-                //console.log("Activity " + idx + " is : " + commands.activity[idx].label);
-            }
-            callBackFn(res);
+            commands.activity.filter(function (act) {
+                if (act.label === activity) {
+                    act.controlGroup.filter(function (cg) {
+                        if (cg.name === cmd[0]) {
+                            cg.function.filter(function (fn) {
+                                var dt, encodedAction;
+                                if (fn.label === cmd[1]) {
+                                    console.log("Triggering On Activity " + activity + " command " + command);
+                                    encodedAction = fn.action.replace(/\:/g, '::');
+                                    dt = 'action=' + encodedAction + ':status=press';
+                                    //console.log("\tSending Action = " + dt);
+                                    self._harmonyClient.send('holdAction', dt).then(function () {
+                                        deferred.resolve(true);
+                                    });
+                                    return;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
         });
+    return deferred.promise;
 }
 
-function readHubDevices(client, callBackFn) {
-    client.getAvailableCommands()
+function executeCommand(cmd_is_for_device, act_or_dev_name, command) {
+    if (cmd_is_for_device) {
+        return this._executeDeviceCommand(act_or_dev_name, command);
+    }
+    return this._executeActivityCommand(act_or_dev_name, command);
+}
+
+function readActivities() {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getAvailableCommands()
         .then(function (commands) {
-            var res = [], idx;
-            for (idx in commands.device) {
-                res.push(commands.device[idx].label);
-                //console.log("Device " + idx + " is :" + commands.device[idx].label);
-            }
-            callBackFn(res);
+            var res = [];
+            commands.activity.filter(function (act) {
+                res.push(act.label);
+            });
+            deferred.resolve(res);
         });
+    return deferred.promise;
+}
+
+function readDevices() {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getAvailableCommands()
+        .then(function (commands) {
+            var res = [];
+            commands.device.filter(function (dev) {
+                res.push(dev.label);
+            });
+            deferred.resolve(res);
+        });
+    return deferred.promise;
 }
 
 
-function readHubCommands(client, device, callBackFn) {
-    client.getAvailableCommands()
+function readDeviceCommands(device) {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getAvailableCommands()
         .then(function (commands) {
-            var res = [], idx, dev;
-            //console.log("Listing commands for :" + args.device);
-            for (idx in commands.device) {
-                dev = commands.device[idx];
+            var res = [];
+            commands.device.filter(function (dev) {
                 if (dev.label === device) {
                     dev.controlGroup.filter(function (group) {
                         group['function'].filter(function (action) {
@@ -106,18 +178,57 @@ function readHubCommands(client, device, callBackFn) {
                             res.push(JSON.parse(action.action).command);
                         });
                     });
+                    deferred.resolve(res);
+                    return;
                 }
-            }
-            callBackFn(res);
+            });
         });
+    return deferred.promise;
 }
 
-module.exports = {
-    readHubCommands : readHubCommands,
-    readHubDevices : readHubDevices,
-    readHubActivities : readHubActivities,
-    executeCommand : executeCommand,
-    discoverHub : discoverHub,
-    createHubClient : createHubClient,
-    executeActivity : executeActivity
-};
+function readActivityCommands(activity) {
+    var deferred = Q.defer(),
+        self = this;
+
+    self._harmonyClient.getAvailableCommands()
+        .then(function (commands) {
+            var res = [];
+            commands.activity.filter(function (act) {
+                if (act.label === activity) {
+                    act.controlGroup.filter(function (cg) {
+                        cg.function.filter(function (fn) {
+                            res.push([cg.name, fn.label]);
+                            //console.log('  ' + cg.name + ' :: ' + fn.label);
+                        });
+                    });
+                    deferred.resolve(res);
+                    return;
+                }
+            });
+        });
+    return deferred.promise;
+}
+
+function readCommands(read_is_for_device, act_or_dev_name) {
+    if (read_is_for_device) {
+        return this._readDeviceCommands(act_or_dev_name);
+    }
+    return this._readActivityCommands(act_or_dev_name);
+}
+
+
+HarmonyHubUtil.prototype._readDeviceCommands = readDeviceCommands;
+HarmonyHubUtil.prototype._readActivityCommands = readActivityCommands;
+HarmonyHubUtil.prototype._executeDeviceCommand = executeDeviceCommand;
+HarmonyHubUtil.prototype._executeActivityCommand = executeActivityCommand;
+
+HarmonyHubUtil.prototype.readCurrentActivity = readCurrentActivity;
+HarmonyHubUtil.prototype.readCommands = readCommands;
+HarmonyHubUtil.prototype.readDevices = readDevices;
+HarmonyHubUtil.prototype.readActivities = readActivities;
+HarmonyHubUtil.prototype.executeCommand = executeCommand;
+HarmonyHubUtil.prototype.executeActivity = executeActivity;
+HarmonyHubUtil.prototype.end = end;
+
+
+module.exports = HarmonyHubUtil;
