@@ -64,72 +64,109 @@ function executeActivity(act) {
     return deferred.promise;
 }
 
-function executeDeviceCommand(device, command) {
+
+function executeDeviceCommandListDF(deferred, dev, device, commandList) {
+    var self = this;
+    var command = commandList.shift();
+    dev.controlGroup.filter(function (group) {
+        group['function'].filter(function (action) {
+            var encodedAction, dt;
+            if (JSON.parse(action.action).command === command) {
+                console.log("Triggering On device " + device + " command " + command);
+                encodedAction = action.action.replace(/\:/g, '::');
+                dt = 'action=' + encodedAction + ':status=press';
+                //console.log("Sending Action = " + dt);
+                self._harmonyClient.send('holdAction', dt).then(function () {
+                    if (commandList.length == 0) {
+                        deferred.resolve(true);
+                    } else {
+                        self._executeDeviceCommandListDF(deferred, dev, device, commandList);
+                    }
+                });
+                return;
+            }
+        });
+    });
+}
+function executeDeviceCommandList(device, commandList) {
     var deferred = Q.defer(),
         self = this;
-
     self._harmonyClient.getAvailableCommands()
         .then(function (commands) {
             commands.device.filter(function (dev) {
                 if (dev.label === device) {
-                    dev.controlGroup.filter(function (group) {
-                        group['function'].filter(function (action) {
-                            var encodedAction, dt;
-                            if (JSON.parse(action.action).command === command) {
-                                console.log("Triggering On device " + device + " command " + command);
-                                encodedAction = action.action.replace(/\:/g, '::');
-                                dt = 'action=' + encodedAction + ':status=press';
-                                //console.log("Sending Action = " + dt);
-                                self._harmonyClient.send('holdAction', dt).then(function () {
-                                    deferred.resolve(true);
-                                });
-                                return;
-                            }
-                        });
-                    });
+                    return self._executeDeviceCommandListDF(deferred, dev, device, commandList)
                 }
             });
         });
     return deferred.promise;
 }
+function executeDeviceCommand(device, command) {
+    var a = []
+    a.push(command)
+    return this._executeDeviceCommandList(device, a)
+}
 
-function executeActivityCommand(activity, command) {
+function executeActivityCommandListDF(deferred, act, activity, commandList) {
+    var self = this,
+        command = commandList.shift(),
+        cmd = command.split(',');
+    act.controlGroup.filter(function (cg) {
+            if (cg.name === cmd[0]) {
+                cg.function.filter(function (fn) {
+                    var dt, encodedAction;
+                    if (fn.label === cmd[1]) {
+                        console.log("Triggering On Activity " + activity + " command " + command);
+                        encodedAction = fn.action.replace(/\:/g, '::');
+                        dt = 'action=' + encodedAction + ':status=press';
+                        //console.log("\tSending Action = " + dt);
+                        self._harmonyClient.send('holdAction', dt).then(function () {
+                            if (commandList.length == 0) {
+                                deferred.resolve(true);
+                            } else {
+                                return self._executeActivityCommandListDF(deferred, act, activity, commandList);
+                            }
+                        });
+                        return;
+                    }
+                });
+            }
+    });
+}
+
+function executeActivityCommandList(activity, commandList) {
     var deferred = Q.defer(),
-        cmd = command.split(','),
         self = this;
-
     self._harmonyClient.getAvailableCommands()
         .then(function (commands) {
             commands.activity.filter(function (act) {
                 if (act.label === activity) {
-                    act.controlGroup.filter(function (cg) {
-                        if (cg.name === cmd[0]) {
-                            cg.function.filter(function (fn) {
-                                var dt, encodedAction;
-                                if (fn.label === cmd[1]) {
-                                    console.log("Triggering On Activity " + activity + " command " + command);
-                                    encodedAction = fn.action.replace(/\:/g, '::');
-                                    dt = 'action=' + encodedAction + ':status=press';
-                                    //console.log("\tSending Action = " + dt);
-                                    self._harmonyClient.send('holdAction', dt).then(function () {
-                                        deferred.resolve(true);
-                                    });
-                                    return;
-                                }
-                            });
-                        }
-                    });
+                    return self._executeActivityCommandListDF(deferred, act, activity, commandList)
                 }
             });
         });
     return deferred.promise;
 }
+function executeActivityCommand(activity, command) {
+    var a = []
+    a.push(command)
+    return this._executeActivityCommandList(activity, a)
+}
 
 function executeCommand(cmd_is_for_device, act_or_dev_name, command) {
+    console.log('execute command received ')
     if (cmd_is_for_device) {
-        return this._executeDeviceCommand(act_or_dev_name, command);
+        if (Array.isArray(command)) {
+            return this._executeDeviceCommandList(act_or_dev_name, command);
+        } else {
+            return this._executeDeviceCommand(act_or_dev_name, command);
+        }
     }
-    return this._executeActivityCommand(act_or_dev_name, command);
+    if (Array.isArray(command)) {
+        return this._executeActivityCommandList(act_or_dev_name, command);
+    } else {
+        return this._executeActivityCommand(act_or_dev_name, command);
+    }
 }
 
 function readActivities() {
@@ -220,7 +257,11 @@ function readCommands(read_is_for_device, act_or_dev_name) {
 HarmonyHubUtil.prototype._readDeviceCommands = readDeviceCommands;
 HarmonyHubUtil.prototype._readActivityCommands = readActivityCommands;
 HarmonyHubUtil.prototype._executeDeviceCommand = executeDeviceCommand;
+HarmonyHubUtil.prototype._executeDeviceCommandList = executeDeviceCommandList;
+HarmonyHubUtil.prototype._executeDeviceCommandListDF = executeDeviceCommandListDF;
 HarmonyHubUtil.prototype._executeActivityCommand = executeActivityCommand;
+HarmonyHubUtil.prototype._executeActivityCommandList = executeActivityCommandList;
+HarmonyHubUtil.prototype._executeActivityCommandListDF = executeActivityCommandListDF;
 
 HarmonyHubUtil.prototype.readCurrentActivity = readCurrentActivity;
 HarmonyHubUtil.prototype.readCommands = readCommands;
