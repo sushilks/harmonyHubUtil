@@ -9,7 +9,7 @@
   "dependencies": {
     "debug": "^2.1.0",
     "q": "^1.1.2",
-    "harmonyhubjs-client": "1.1.4"
+    "harmonyhubjs-client": "^1.1.8"
   },
   "repository": {
     "type": "git",
