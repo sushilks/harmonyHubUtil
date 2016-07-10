@@ -74,14 +74,17 @@ function executeDeviceCommandListDF(deferred, dev, device, commandList) {
             if (JSON.parse(action.action).command === command) {
                 console.log("Triggering On device " + device + " command " + command);
                 encodedAction = action.action.replace(/\:/g, '::');
-                dt = 'action=' + encodedAction + ':status=press';
-                //console.log("Sending Action = " + dt);
-                self._harmonyClient.send('holdAction', dt).then(function () {
-                    if (commandList.length == 0) {
-                        deferred.resolve(true);
-                    } else {
-                        self._executeDeviceCommandListDF(deferred, dev, device, commandList);
-                    }
+                var dt_press = 'action=' + encodedAction + ':status=press';
+                var dt_release = 'action=' + encodedAction + ':status=release';
+
+                self._harmonyClient.send('holdAction', dt_press).then(function () {
+                    self._harmonyClient.send('holdAction', dt_release).then(function () {
+                        if (commandList.length == 0) {
+                            deferred.resolve(true);
+                        } else {
+                            self._executeDeviceCommandListDF(deferred, dev, device, commandList);
+                        }
+                    });
                 });
                 return;
             }
@@ -118,14 +121,17 @@ function executeActivityCommandListDF(deferred, act, activity, commandList) {
                     if (fn.label === cmd[1]) {
                         console.log("Triggering On Activity " + activity + " command " + command);
                         encodedAction = fn.action.replace(/\:/g, '::');
-                        dt = 'action=' + encodedAction + ':status=press';
+                        var dt_press = 'action=' + encodedAction + ':status=press';
+                        var dt_release = 'action=' + encodedAction + ':status=release';
                         //console.log("\tSending Action = " + dt);
-                        self._harmonyClient.send('holdAction', dt).then(function () {
-                            if (commandList.length == 0) {
-                                deferred.resolve(true);
-                            } else {
-                                return self._executeActivityCommandListDF(deferred, act, activity, commandList);
-                            }
+                        self._harmonyClient.send('holdAction', dt_press).then(function () {
+                            self._harmonyClient.send('holdAction', dt_release).then(function () {
+                                if (commandList.length == 0) {
+                                    deferred.resolve(true);
+                                } else {
+                                    return self._executeActivityCommandListDF(deferred, act, activity, commandList);
+                                }
+                            });
                         });
                         return;
                     }
