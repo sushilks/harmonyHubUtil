@@ -1,6 +1,6 @@
 {
   "name": "harmony-hub-util",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Harmony remote Hub Utilities",
   "main": "harmonyHubUtils.js",
   "scripts": {

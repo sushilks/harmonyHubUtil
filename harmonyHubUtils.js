@@ -82,7 +82,9 @@ function executeDeviceCommandListDF(deferred, dev, device, commandList) {
                         if (commandList.length == 0) {
                             deferred.resolve(true);
                         } else {
-                            self._executeDeviceCommandListDF(deferred, dev, device, commandList);
+                            setTimeout(function() {
+                                self._executeDeviceCommandListDF(deferred, dev, device, commandList);
+                            }, 100);
                         }
                     });
                 });
@@ -129,7 +131,9 @@ function executeActivityCommandListDF(deferred, act, activity, commandList) {
                                 if (commandList.length == 0) {
                                     deferred.resolve(true);
                                 } else {
-                                    return self._executeActivityCommandListDF(deferred, act, activity, commandList);
+                                    return setTimeout(function () {
+                                        self._executeActivityCommandListDF(deferred, act, activity, commandList);
+                                    },100);
                                 }
                             });
                         });
